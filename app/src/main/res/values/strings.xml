@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">EduSoal AI</string>
+    <string name="app_tagline">Institutional Assessment &amp; Item Design Suite</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="nav_generator">Generator</string>
+    <string name="nav_item_bank">Item Bank</string>
+    <string name="nav_assessments">Assessments</string>
+    <string name="sign_out">Sign out</string>
+</resources>

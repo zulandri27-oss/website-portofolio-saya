@@ -1,0 +1,153 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny all paths unless explicitly matched
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidQuestionItem(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 60 &&
+             data.gradeLevel is string && data.gradeLevel.size() >= 1 && data.gradeLevel.size() <= 40 &&
+             data.topic is string && data.topic.size() >= 1 && data.topic.size() <= 150 &&
+             data.bloomLevel in ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'] &&
+             data.questionFormat in ['MULTIPLE_CHOICE', 'COMPLEX_MC', 'ESSAY'] &&
+             data.difficulty in ['FOUNDATIONAL', 'STANDARD', 'HOTS'] &&
+             data.stimulusTitle is string && data.stimulusTitle.size() <= 160 &&
+             data.stimulusContent is string && data.stimulusContent.size() <= 4000 &&
+             data.questionStem is string && data.questionStem.size() >= 1 && data.questionStem.size() <= 2000 &&
+             data.options is list && data.options.size() <= 6 &&
+             (data.options.size() == 0 || data.options[0] is string) &&
+             data.correctOptionIndex is int && data.correctOptionIndex >= -1 && data.correctOptionIndex <= 5 &&
+             data.pedagogicalRationale is string && data.pedagogicalRationale.size() <= 2000 &&
+             data.scoringRubric is string && data.scoringRubric.size() <= 2000 &&
+             data.curriculumAlignment is string && data.curriculumAlignment.size() <= 200 &&
+             data.estimatedMinutes is int && data.estimatedMinutes >= 1 && data.estimatedMinutes <= 120 &&
+             data.discriminationIndex is number && data.discriminationIndex >= 0.0 && data.discriminationIndex <= 1.0 &&
+             data.reviewStatus in ['DRAFT', 'VALIDATED', 'APPROVED'];
+    }
+
+    function isValidAssessmentPlan(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 60 &&
+             data.gradeLevel is string && data.gradeLevel.size() >= 1 && data.gradeLevel.size() <= 40 &&
+             data.description is string && data.description.size() <= 600 &&
+             data.questionIds is list && data.questionIds.size() <= 50 &&
+             (data.questionIds.size() == 0 || data.questionIds[0] is string) &&
+             data.totalMinutes is int && data.totalMinutes >= 0 && data.totalMinutes <= 600 &&
+             data.status in ['DRAFT', 'READY', 'PUBLISHED'];
+    }
+
+    match /users/{userId}/questions/{questionId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(questionId);
+      allow delete: if isOwner(userId) && isValidId(questionId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(questionId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'subject', 'gradeLevel', 'topic', 'bloomLevel',
+                         'questionFormat', 'difficulty', 'stimulusTitle', 'stimulusContent',
+                         'questionStem', 'options', 'correctOptionIndex', 'pedagogicalRationale',
+                         'scoringRubric', 'curriculumAlignment', 'estimatedMinutes',
+                         'discriminationIndex', 'reviewStatus', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'subject', 'gradeLevel', 'topic', 'bloomLevel',
+                         'questionFormat', 'difficulty', 'stimulusTitle', 'stimulusContent',
+                         'questionStem', 'options', 'correctOptionIndex', 'pedagogicalRationale',
+                         'scoringRubric', 'curriculumAlignment', 'estimatedMinutes',
+                         'discriminationIndex', 'reviewStatus', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidQuestionItem(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(questionId) &&
+                       isValidQuestionItem(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time && (
+                         // Action 1: Full item edit
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'subject', 'gradeLevel', 'topic', 'bloomLevel', 'questionFormat',
+                           'difficulty', 'stimulusTitle', 'stimulusContent', 'questionStem',
+                           'options', 'correctOptionIndex', 'pedagogicalRationale',
+                           'scoringRubric', 'curriculumAlignment', 'estimatedMinutes',
+                           'discriminationIndex', 'reviewStatus', 'updatedAt'
+                         ]) ||
+                         // Action 2: Review status transition
+                         incoming().diff(existing()).affectedKeys().hasOnly(['reviewStatus', 'updatedAt']) ||
+                         // Action 3: Answer key toggle
+                         incoming().diff(existing()).affectedKeys().hasOnly(['correctOptionIndex', 'updatedAt'])
+                       );
+    }
+
+    match /users/{userId}/assessments/{assessmentId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(assessmentId);
+      allow delete: if isOwner(userId) && isValidId(assessmentId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(assessmentId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'title', 'subject', 'gradeLevel', 'description',
+                         'questionIds', 'totalMinutes', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'title', 'subject', 'gradeLevel', 'description',
+                         'questionIds', 'totalMinutes', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidAssessmentPlan(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(assessmentId) &&
+                       isValidAssessmentPlan(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time && (
+                         // Action 1: Update assessment details or attached items
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'subject', 'gradeLevel', 'description',
+                           'questionIds', 'totalMinutes', 'status', 'updatedAt'
+                         ]) ||
+                         // Action 2: Update status only
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+                       );
+    }
+  }
+}

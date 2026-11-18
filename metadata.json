@@ -1,0 +1,6 @@
+{
+  "name": "EduSoal AI",
+  "description": "AI-powered academic assessment designer and item bank suite with Bloom's Taxonomy alignment and pedagogical metadata.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

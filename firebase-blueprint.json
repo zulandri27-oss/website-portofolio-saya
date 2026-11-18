@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "QuestionItem": {
+      "title": "QuestionItem",
+      "description": "An AI-generated or educator-authored assessment question item with context stimulus, answer key, Bloom's taxonomy classification, and pedagogical metadata.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated educator UID owning this item."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Academic subject area (e.g., Biology, Economics)."
+        },
+        "gradeLevel": {
+          "type": "string",
+          "description": "Target grade or institutional level."
+        },
+        "topic": {
+          "type": "string",
+          "description": "Curriculum topic or learning objective."
+        },
+        "bloomLevel": {
+          "type": "string",
+          "enum": ["C1", "C2", "C3", "C4", "C5", "C6"],
+          "description": "Bloom's revised cognitive taxonomy tier."
+        },
+        "questionFormat": {
+          "type": "string",
+          "enum": ["MULTIPLE_CHOICE", "COMPLEX_MC", "ESSAY"],
+          "description": "Structural format of the assessment item."
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["FOUNDATIONAL", "STANDARD", "HOTS"],
+          "description": "Cognitive difficulty classification."
+        },
+        "stimulusTitle": {
+          "type": "string",
+          "description": "Header title for the reading passage or data stimulus."
+        },
+        "stimulusContent": {
+          "type": "string",
+          "description": "Context stimulus passage, scenario, or data brief."
+        },
+        "questionStem": {
+          "type": "string",
+          "description": "Primary question prompt."
+        },
+        "options": {
+          "type": "array",
+          "description": "List of response choices for objective formats."
+        },
+        "correctOptionIndex": {
+          "type": "integer",
+          "description": "Zero-based index of the correct answer option, or -1 for essay items."
+        },
+        "pedagogicalRationale": {
+          "type": "string",
+          "description": "Explanation of why the correct response aligns with the cognitive target."
+        },
+        "scoringRubric": {
+          "type": "string",
+          "description": "Criteria and point breakdown for assessment grading."
+        },
+        "curriculumAlignment": {
+          "type": "string",
+          "description": "Standard or syllabus code alignment."
+        },
+        "estimatedMinutes": {
+          "type": "integer",
+          "description": "Estimated completion time in minutes."
+        },
+        "discriminationIndex": {
+          "type": "number",
+          "description": "Target item discrimination index between 0.0 and 1.0."
+        },
+        "reviewStatus": {
+          "type": "string",
+          "enum": ["DRAFT", "VALIDATED", "APPROVED"],
+          "description": "Editorial review status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "subject",
+        "gradeLevel",
+        "topic",
+        "bloomLevel",
+        "questionFormat",
+        "difficulty",
+        "stimulusTitle",
+        "stimulusContent",
+        "questionStem",
+        "options",
+        "correctOptionIndex",
+        "pedagogicalRationale",
+        "scoringRubric",
+        "curriculumAlignment",
+        "estimatedMinutes",
+        "discriminationIndex",
+        "reviewStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AssessmentPlan": {
+      "title": "AssessmentPlan",
+      "description": "A curated exam or assessment matrix composed of saved question items.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated educator UID owning this assessment."
+        },
+        "title": {
+          "type": "string",
+          "description": "Assessment title."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Primary academic subject."
+        },
+        "gradeLevel": {
+          "type": "string",
+          "description": "Target grade level."
+        },
+        "description": {
+          "type": "string",
+          "description": "Assessment instructions or scope summary."
+        },
+        "questionIds": {
+          "type": "array",
+          "description": "Ordered list of QuestionItem document IDs included in this assessment."
+        },
+        "totalMinutes": {
+          "type": "integer",
+          "description": "Total estimated exam duration in minutes."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["DRAFT", "READY", "PUBLISHED"],
+          "description": "Readiness status of the assessment."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "subject",
+        "gradeLevel",
+        "description",
+        "questionIds",
+        "totalMinutes",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/questions/{questionId}": {
+      "schema": { "$ref": "#/entities/QuestionItem" },
+      "description": "Educator's private question item bank."
+    },
+    "/users/{userId}/assessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/AssessmentPlan" },
+      "description": "Educator's curated assessment matrices."
+    }
+  }
+}
